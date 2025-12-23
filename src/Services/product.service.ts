@@ -51,3 +51,12 @@ export const getCategoryProductQuery = (category_id : string) => {
     [category_id]
   )
 }
+
+export const findProduct = (productId : string) => {
+  return pool.query(
+    `
+      SELECT * FROM "products"
+      WHERE id = $1;
+    `,[productId]
+  )
+}
