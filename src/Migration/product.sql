@@ -36,14 +36,14 @@ INSERT INTO products (
 VALUES
 ('Rice', 10, 45.00, 55.00, 'Basmati rice 1kg' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
 ('Wheat Flour', 15, 38.00, 45.00, 'Whole wheat flour' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
--- ('Sugar', 20, 40.00, 48.00, 'Refined white sugar'),
--- ('Salt', 25, 18.00, 22.00, 'Iodized salt'),
--- ('Cooking Oil', 12, 120.00, 140.00, 'Sunflower cooking oil'),
--- ('Tea Powder', 8, 210.00, 250.00, 'Premium tea leaves'),
--- ('Coffee Powder', 6, 280.00, 330.00, 'Instant coffee powder'),
--- ('Milk Packet', 30, 22.00, 26.00, 'Toned milk 500ml'),
--- ('Butter', 10, 95.00, 110.00, 'Salted butter'),
--- ('Cheese', 7, 180.00, 210.00, 'Processed cheese slices'),
+('Sugar', 20, 40.00, 48.00, 'Refined white sugar' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Salt', 25, 18.00, 22.00, 'Iodized salt' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Cooking Oil', 12, 120.00, 140.00, 'Sunflower cooking oil' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Tea Powder', 8, 210.00, 250.00, 'Premium tea leaves' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Coffee Powder', 6, 280.00, 330.00, 'Instant coffee powder' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Milk Packet', 30, 22.00, 26.00, 'Toned milk 500ml' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Butter', 10, 95.00, 110.00, 'Salted butter' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
+('Cheese', 7, 180.00, 210.00, 'Processed cheese slices' , 'b923ff9d-02d0-4eda-bd7c-ddbd70d430cc'),
 -- ('Eggs', 24, 5.00, 6.50, 'Farm fresh eggs'),
 -- ('Bread', 18, 25.00, 30.00, 'Whole wheat bread'),
 -- ('Biscuits', 40, 12.00, 15.00, 'Cream biscuits'),
@@ -59,3 +59,16 @@ VALUES
 -- ('Cornflakes', 10, 130.00, 155.00, 'Breakfast cornflakes'),
 -- ('Spices Mix', 16, 55.00, 68.00, 'Mixed spices pack'),
 -- ('Dry Fruits', 4, 420.00, 500.00, 'Assorted dry fruits');
+
+
+ALTER TABLE products
+ADD COLUMN search_vector_product tsvector;
+
+
+UPDATE products
+SET search_vector_product =  to_tsvector('english', product_name || ' ' || product_desc);
+    
+
+CREATE INDEX idx_products_search
+ON products
+USING GIN (search_vector_product);

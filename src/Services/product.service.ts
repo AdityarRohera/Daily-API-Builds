@@ -60,3 +60,27 @@ export const findProduct = (productId : string) => {
     `,[productId]
   )
 }
+
+// Not good for performance because it search each and every rows
+// export const getSearchedProduct = (search : any) => {
+//   return pool.query(
+//     `
+//       SELECT * FROM "products"
+//       WHERE to_tsvector('english' , product_name || ' ' || product_desc)
+//       @@ plainto_tsquery('english' , $1);
+//     ` , [search]
+//   )
+// }
+
+
+export const getSearchedProduct = (search : any) => {
+  return pool.query(
+    `
+      SELECT * , 
+      ts_rank(search_vector_product, plainto_tsquery('english', $1)) AS rank
+      FROM "products"
+      WHERE search_vector_product
+      @@ plainto_tsquery('english' , $1);
+    ` , [search]
+  )
+}

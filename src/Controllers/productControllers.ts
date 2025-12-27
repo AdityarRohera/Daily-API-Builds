@@ -1,5 +1,5 @@
 import type { Request , Response } from "express"
-import { getProducts , newProductQuery , getCategoryProductQuery } from "../Services/product.service.js"
+import { getProducts , newProductQuery , getCategoryProductQuery , getSearchedProduct } from "../Services/product.service.js"
 
 export const newProductHandler = async(req : Request , res : Response) => {
     try{
@@ -56,6 +56,34 @@ export const getAllProducts = async(req : Request , res : Response) => {
             success : true,
             message : "fetch product successfully",
             data : products.rows
+        })
+
+    } catch(err){
+        console.log("Error comes in getting products -> " , err)
+    }
+}
+
+export const searchProducts = async(req : Request , res : Response) => {
+    try{
+
+        const search = req.query.q;
+
+        if(!search){
+            return res.status(400).json({
+                status : false,
+                message : "Invalid data"
+            })
+        }
+
+        console.log(search , typeof search);
+
+        const findProduct = await getSearchedProduct(search);
+        // console.log("Output getting ***********" , findProduct.rows);
+
+        res.status(200).send({
+            success : true,
+            message : "fetch product successfully",
+            data : findProduct.rows
         })
 
     } catch(err){
