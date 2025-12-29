@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import pool from "../Config/dbConnect.js"
 
 interface getProductsType{
@@ -83,4 +84,76 @@ export const getSearchedProduct = (search : any) => {
       @@ plainto_tsquery('english' , $1);
     ` , [search]
   )
+}
+
+// export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number) => {
+//      const db = mongoose.connection.db;
+     
+//      return db?.collection('products').aggregate([
+//         // {$match : 
+//         //   {$expr : {$and : [
+//         //                {$gte : ["$selling_price" , Number(minSellingPrice) || 0]},
+//         //                {$lte : ["$selling_price" , Number(maxSellingPrice) || 5000]}
+//         //   ]}}
+//         // } , 
+
+//         // also in simple 
+//         {
+//             $match: {
+//                 selling_price: {
+//                   $gte: Number(minSellingPrice) || 0,
+//                   $lte: Number(maxSellingPrice) || 5000
+//                   }
+//               }
+//         },
+
+//         {
+//           $project : {_id : 0 , product_name : 1 , product_quantity : 1 , price : "$selling_price"}
+//         },
+        
+//         { $sort: { price: -1 } },
+
+//         {
+//           $group : {_id : null , count : {$sum : 1} , products : {$push : "$$ROOT"}}
+//         },
+
+//      ])
+//      .toArray();
+// }
+
+// this is good approach
+export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number) => {
+     const db = mongoose.connection.db;
+     
+     return db?.collection('products').aggregate([
+        {
+            $match: {
+                selling_price: {
+                  $gte: Number(minSellingPrice) || 0,
+                  $lte: Number(maxSellingPrice) || 5000
+                  }
+              }
+        },
+
+        {
+          $facet : {
+
+                products : [
+                    {
+                      $project : {_id : 0 , product_name : 1 , product_quantity : 1 , price : "$selling_price"}
+                    },
+                ] ,
+
+                count : [{$group : {_id : null , total : {$sum : 1}}}]
+          }
+        },
+         {
+            $project: {
+              products: 1,
+              count: { $arrayElemAt: ["$count.total", 0] }
+            }
+         }
+
+     ])
+     .toArray();
 }
