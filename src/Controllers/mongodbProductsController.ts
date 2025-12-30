@@ -4,11 +4,15 @@ import { getProductsMongo } from "../Services/product.service.js";
 export const getAllProducts = async(req : Request , res : Response) => {
     try{
 
-        const minSellingPrice = Number(req.query.minPrice);
-        const maxSellingPrice = Number(req.query.maxPrice);
-        console.log(minSellingPrice , " " , maxSellingPrice);
+        const minSellingPrice  : any= req.query.minPrice;
+        const maxSellingPrice : any = req.query.maxPrice;
+        const page = Number(req.query.page) || 1;
+        const LIMIT = Number(req.query.limit) || 2;
+        const OFFSET = (page-1) * LIMIT;
 
-        const products = await getProductsMongo(minSellingPrice , maxSellingPrice);
+        console.log(minSellingPrice , " " , maxSellingPrice  , " ", page , " ", LIMIT , " ", OFFSET , page);
+
+        const products = await getProductsMongo(minSellingPrice , maxSellingPrice , OFFSET , LIMIT , page);
         console.log(products);
 
         res.status(200).json({

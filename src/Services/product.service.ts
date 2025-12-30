@@ -122,35 +122,70 @@ export const getSearchedProduct = (search : any) => {
 // }
 
 // this is good approach
-export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number) => {
+export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number , OFFSET : number , LIMIT : number , page : number) => {
      const db = mongoose.connection.db;
+
+     const priceFilter: any = {};
+
+      if (minSellingPrice !== undefined) {
+        priceFilter.$gte = Number(minSellingPrice);
+      }
+    
+      if (maxSellingPrice !== undefined) {
+        priceFilter.$lte = Number(maxSellingPrice);
+      }
+    
+      const matchStage =
+        Object.keys(priceFilter).length > 0
+          ? { $match: { selling_price: priceFilter } }
+          : { $match: {} };
+
      
      return db?.collection('products').aggregate([
-        {
-            $match: {
-                selling_price: {
-                  $gte: Number(minSellingPrice) || 0,
-                  $lte: Number(maxSellingPrice) || 5000
-                  }
-              }
-        },
+      // not good to set max price manually
+        // {
+        //     $match: {
+        //         selling_price: {
+        //                       $gte: Number(minSellingPrice) || 0,
+        //                       $lte: Number(maxSellingPrice) || 5000
+        //           }
+        //       }
+        // },
+
+        matchStage,
 
         {
           $facet : {
+
+                Totalcount : [{$group : {_id : null , total : {$sum : 1}}}],
 
                 products : [
                     {
                       $project : {_id : 0 , product_name : 1 , product_quantity : 1 , price : "$selling_price"}
                     },
-                ] ,
 
-                count : [{$group : {_id : null , total : {$sum : 1}}}]
+                    {$sort : {price : -1}},
+
+                    {$skip : OFFSET},
+
+                    {$limit : LIMIT}
+                ]
           }
         },
          {
             $project: {
               products: 1,
-              count: { $arrayElemAt: ["$count.total", 0] }
+              Totalcount: { $arrayElemAt: ["$Totalcount.total", 0] },
+              ResultCount: { $size: "$products" },
+              totalPages: {
+                            $ceil: {
+                              $divide: [
+                                { $arrayElemAt: ["$Totalcount.total", 0] },
+                                LIMIT
+                              ]
+                            }
+                          },
+               page: { $literal: page }
             }
          }
 
