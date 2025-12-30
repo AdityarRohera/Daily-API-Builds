@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import pool from "../Config/dbConnect.js"
+// import { newClient } from "../Config/radisConfig.js";
+
 
 interface getProductsType{
   limit : number;
@@ -122,7 +124,7 @@ export const getSearchedProduct = (search : any) => {
 // }
 
 // this is good approach
-export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number , OFFSET : number , LIMIT : number , page : number) => {
+export const getProductsMongo = async(minSellingPrice : number , maxSellingPrice : number , OFFSET : number , LIMIT : number , page : number) => {
      const db = mongoose.connection.db;
 
      const priceFilter: any = {};
