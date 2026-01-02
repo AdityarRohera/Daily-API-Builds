@@ -45,14 +45,35 @@ export const newProductQuery =({product_name , product_quantity , buying_price ,
   )
 }
 
+// not good approach
+// export const getCategoryProductQuery = (category_id : string) => {
+//   return pool.query(
+//     `
+//     SELECT * FROM "products"
+//     WHERE category_id = $1;
+//     `,
+//     [category_id]
+//   )
+// }
+
+// best approach
+// ✔ LEFT JOIN is important
+// → It allows category to exist even if no products
 export const getCategoryProductQuery = (category_id : string) => {
   return pool.query(
     `
-    SELECT * FROM "products"
-    WHERE category_id = $1;
+      SELECT 
+        c.id AS category_id,
+        c.category_name,
+        p.id AS product_id,
+        p.product_name,
+        p.selling_price
+      FROM categories c
+      LEFT JOIN products p ON p.category_id = c.id
+      WHERE c.id = $1;
     `,
     [category_id]
-  )
+  );
 }
 
 export const findProduct = (productId : string) => {

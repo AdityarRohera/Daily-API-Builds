@@ -3,7 +3,6 @@ import dotenv from 'dotenv'
 dotenv.config();
 import { dbConnect } from './Config/mongodbConnect.js';
 import { limiter } from './Config/rateLimiting.js';
-import { newClient } from './Config/radisConfig.js';
 
 dbConnect();
 
@@ -28,14 +27,6 @@ app.use('/api/v1/' , orderRoute);
 // Mongodb pagination api
 app.use('/api/v1' , ProductRouteMongodb);
 
-(async () => {
-  try {
-    await newClient();
-    app.listen(port, () => {
-      console.log(`App listening on port ${port}`);
-    });
-  } catch (err) {
-    console.error('Failed to start app', err);
-    process.exit(1);
-  }
-})();
+app.listen(port, () => {
+  console.log(`App listening on port ${port}`)
+})
