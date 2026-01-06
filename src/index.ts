@@ -19,10 +19,13 @@ import categoryRouter from './Routes/categoryRoute.js';
 import userRoute from './Routes/userRoute.js';
 import orderRoute from './Routes/orderRoute.js';
 import ProductRouteMongodb from './Routes/ProductRouteMongodb.js';
+import pgUserRoute from './Routes/PostgresUserRoute.js';
 app.use('/api/v1/' , productRoute);
 app.use('/api/v1/' , categoryRouter);
 app.use('/api/v1/' , userRoute);
 app.use('/api/v1/' , orderRoute);
+
+app.use('/api/v1' ,pgUserRoute);
 
 // Mongodb pagination api
 app.use('/api/v1' , ProductRouteMongodb);

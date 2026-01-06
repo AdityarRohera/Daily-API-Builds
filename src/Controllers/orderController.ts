@@ -19,10 +19,10 @@ export const orderProductHandler = async(req : Request , res : Response) => {
         // validate product ID 
         const product = await findProduct(productId);
 
-        if(!product){
+        if(product.rowCount === 0){
             return res.status(400).send({
                 status : false,
-                message : "Invalid Product Id"
+                message : "Product not found"
             })
         }
         console.log(product.rows[0])
