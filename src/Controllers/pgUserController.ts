@@ -1,5 +1,5 @@
 import type{ Request , Response } from "express";
-import { findUser , createUSer , defaultRole , newRole, roleExists  , assignRoleToUser} from "../Services/pgUser.service.js";
+import { findUser , createUSer , defaultRole , newRole, roleExists  , assignRoleToUser, userExists} from "../Services/pgUser.service.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
@@ -31,7 +31,7 @@ export const newUserHandler = async(req : Request , res : Response) => {
 
         // fetch default role (USER)
          const role = await defaultRole();
-         console.log(role)
+         console.log("Role -> " , role)
         if (role.rowCount === 0) {
             return res.status(500).json({
               success: false,
@@ -39,11 +39,19 @@ export const newUserHandler = async(req : Request , res : Response) => {
             });
         }
 
+        // this should be in transaction 
         // create user
         const createdUser = await createUSer({name , email , password : hashPassword});
 
          // assign role (RBAC-safe)
         const assignedResult =  await assignRoleToUser(createdUser.rows[0].id, role.rows[0].id);
+        if(assignedResult.rowCount === 0){
+            return res.status(400).send({
+                success : false,
+                message : "Role already assigned"
+            })
+        }
+
         const responseBody = assignedResult.rows[0]
         
         return res.status(200).send({
@@ -115,17 +123,25 @@ export const assignRoleHandler = async(req : Request , res : Response) => {
         const userId = req.params.id;
         const {assignRoleId} = req.body;
 
-         if(!userId || typeof userId !== "string"){
+         if(!userId || typeof userId !== "string" || !assignRoleId){
             return res.status(400).send({
                 success : false,
-                message : "User id required"
+                message : "User ID and Role ID are required"
             })
         }
 
+        // check user
+        const userCheck = await userExists(userId);
+        if (userCheck.rowCount === 0) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found"
+          });
+        }
+
+
         // Check role
-        const roleCheck = await roleExists(assignRoleId);
-        console.log(roleCheck.rows[0])
-        
+        const roleCheck = await roleExists(assignRoleId);  
         if (roleCheck.rowCount === 0) {
           return res.status(400).json({
             status: false,
@@ -136,9 +152,9 @@ export const assignRoleHandler = async(req : Request , res : Response) => {
           // Assign role
         const result = await assignRoleToUser(userId, assignRoleId);
         if (result.rowCount === 0) {
-          return res.status(400).json({
+          return res.status(409).json({
             status: false,
-            message: 'User not found'
+            message: 'Role Already Assigned'
           });
         }
         
@@ -149,7 +165,7 @@ export const assignRoleHandler = async(req : Request , res : Response) => {
         })
         
     } catch(err : unknown){
-        console.log("Error comes in New User Registered -> " , err);
+        console.log("Error comes in assigning role -> " , err);
         let errmessage;
         if(err instanceof Error){
             errmessage = err.message
@@ -159,7 +175,7 @@ export const assignRoleHandler = async(req : Request , res : Response) => {
 
         res.status(500).send({
             status : false,
-            message : "Something wrong in New User Registered",
+            message : "Something wrong in assigning role",
             error : errmessage
         })
     }

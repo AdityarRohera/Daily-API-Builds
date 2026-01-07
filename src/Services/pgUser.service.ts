@@ -26,12 +26,24 @@ export const findUser = (email : string) => {
     )
 }
 
-export const getUserRole = (userId : string) => {
+export const getUserRoles = (userId: string) => {
+  return pool.query(
+    `
+    SELECT r.name as Role
+    FROM user_roles ur
+    JOIN roles r ON r.id = ur.role_id
+    WHERE ur.user_id = $1;
+    `,
+    [userId]
+  );
+};
+
+
+export const userExists = (userId : string) => {
     return pool.query(
         `
-        SELECT r.name FROM users AS u
-        JOIN roles AS r ON r.id = u.role_id
-        WHERE u.id = $1;
+        SELECT * FROM users
+        WHERE id = $1;
         ` , [userId]
     )
 }
@@ -49,21 +61,22 @@ export const assignRoleToUser = (
   userId: string,
   roleId: string
 ) => {
+    console.log(userId , roleId)
   return pool.query(
     `
     WITH inserted_user_role AS (
-      INSERT INTO user_roles (userId, roleId)
+      INSERT INTO user_roles (user_id, role_id)
       VALUES ($1, $2)
-      ON CONFLICT (userId, roleId) DO NOTHING
-      RETURNING userId, roleId
+      ON CONFLICT (user_id, role_id) DO NOTHING
+      RETURNING user_id, role_id
     )
     SELECT 
       u.id,
       u.email,
       r.name AS role
     FROM inserted_user_role ur
-    JOIN users u ON u.id = ur.userId
-    JOIN roles r ON r.id = ur.roleId;
+    JOIN users u ON u.id = ur.user_id
+    JOIN roles r ON r.id = ur.role_id;
     `,
     [userId, roleId]
   );
@@ -75,7 +88,7 @@ export const createUSer = ({name , email , password} : any) => {
         `
         INSERT INTO users (name, email, password)
         VALUES($1 , $2 , $3)
-        RETURNING name , email;
+        RETURNING id , name , email;
         ` , [name , email , password]
     )
 }

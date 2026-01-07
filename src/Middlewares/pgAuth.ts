@@ -1,7 +1,7 @@
 import type {Request , Response} from 'express'
 import type { JwtPayload } from 'jsonwebtoken';
 import jwt from 'jsonwebtoken';
-import {getUserRole } from '../Services/pgUser.service.js';
+import {getUserRoles } from '../Services/pgUser.service.js';
 
 
 export interface AuthenticatedRequest extends Request {
@@ -59,11 +59,12 @@ export const isAdmin = async(req : Request , res : Response , next : any) => {
         console.log("IsAdmin getting user id -> " , userId);
 
         // get role of user
-        const userRole = await getUserRole(userId);
-        if(userRole.rows[0].name !== 'Admin'){
+        const userRole = await getUserRoles(userId);
+        console.log(userRole.rows);
+        if(userRole.rows[0].role !== 'Admin'){
             return res.status(400).send({
                 success : false,
-                message : `Your Role is ${userRole.rows[0].name} , so you are not allowed to access admin route`
+                message : `Your Role is ${userRole.rows[0].role} , so you are not allowed to access admin route`
             })
         }
 
