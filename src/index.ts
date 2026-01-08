@@ -11,7 +11,7 @@ const app = express()
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(limiter);
+// app.use(limiter);
 
 // Import all routes here 
 import productRoute from './Routes/ProductRoute.js';

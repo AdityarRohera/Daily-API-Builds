@@ -1,6 +1,9 @@
 import type { Request , Response } from "express"
 import { getProducts , newProductQuery , getCategoryProductQuery , getSearchedProduct } from "../Services/product.service.js"
 
+import type { AuthenticatedRequest } from "../Middlewares/pgAuth.js";
+import { findProduct , softDeleteProduct } from "../Services/product.service.js";
+
 export const newProductHandler = async(req : Request , res : Response) => {
     try{
 
@@ -88,5 +91,78 @@ export const searchProducts = async(req : Request , res : Response) => {
 
     } catch(err){
         console.log("Error comes in getting products -> " , err)
+    }
+}
+
+export const softDeleteProductHandler = async(req : Request , res : Response) => {
+    try{
+
+       const adminId = (req as AuthenticatedRequest).user.userId;
+       const productId = req.params.id;
+
+       console.log("Admin id -> " , adminId , "Product id -> " , productId);
+
+       // now first validate product id
+       if(!productId || typeof productId !== "string"){
+        return res.status(400).send({
+            success : false,
+            message : "Product id required"
+        })
+       }
+
+       // find product
+    //    const product = await findProduct(productId);
+    //    if(product.rowCount === 0){
+    //     return res.status(400).send({
+    //         success : false,
+    //         message : "Invalid Product id"
+    //     })
+    //    }
+
+       // Perform soft delete 
+       const deleteProduct = await softDeleteProduct(productId , adminId);
+       if(deleteProduct.rowCount === 0){
+
+        // 2 reasons of fails 
+        // 1. Invalid product id and 2. product already deleted
+
+            const check = await findProduct(productId)
+
+            if (check.rowCount === 0) {
+              return res.status(404).send({
+                success: false,
+                message: "Product not found"
+              });
+            }
+
+            return res.status(409).send({
+              success: false,
+              message: "Product already deleted"
+            });
+       }
+
+        res.status(200).send({
+            success : true,
+            message : "Product delete successfully",
+            action: "DELETE",
+            table: "products",
+            product : deleteProduct.rows[0],
+            performed_by : adminId
+        })
+
+    } catch(err : unknown){
+        console.log("Error comes in creating new product -> " , err);
+        let errmessage;
+        if(err instanceof Error){
+            errmessage = err.message
+        } else if(typeof err === "string"){
+            errmessage = err
+        }
+
+        res.status(500).send({
+            status : false,
+            message : "Something wrong in creating new product",
+            error : errmessage
+        })
     }
 }

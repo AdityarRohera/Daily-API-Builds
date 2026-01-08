@@ -215,7 +215,7 @@ export const signInUserHandler = async(req : Request , res : Response) => {
         const token = jwt.sign({
             userId : user.rows[0].id,
             email : user.rows[0].email
-        } , process.env.SECRET! ,  { expiresIn: "1h" });
+        } , process.env.SECRET! ,  { expiresIn: "2h" });
         
         
          return res.status(200).send({

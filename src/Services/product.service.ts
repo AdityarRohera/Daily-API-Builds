@@ -109,6 +109,49 @@ export const getSearchedProduct = (search : any) => {
   )
 }
 
+// soft delete product
+export const softDeleteProduct = async(productId : string , adminId : string) => {
+
+    const client =  await pool.connect()
+    try{  
+
+        await client.query('BEGIN');
+
+        // set admin id to postgres for getting performed_by in product_audit field
+        await client.query(
+          `SELECT set_config('app.user_id', $1, true)`,
+          [adminId]
+        );
+
+        // 2. mark product as delete (update deleted_at date)
+        const deletedProduct = await client.query(
+          `
+          UPDATE products
+          SET deleted_at = NOW()
+          WHERE id = $1 AND deleted_at IS NULL
+          RETURNING *
+          ` , [productId]
+        )
+
+        client.query('COMMIT');
+      
+        return deletedProduct;
+
+    } catch(err : unknown){
+
+      await client.query('ROLLBACK');
+      console.log(err)
+
+        if(err instanceof Error){
+          throw new Error(`Error comes while deleting the product ${err.message}`);
+        } else{
+          throw new Error(`Error comes while deleting the product ${err}`);
+        }
+    } finally{
+       client.release();
+    }
+}
+
 // export const getProductsMongo = (minSellingPrice : number , maxSellingPrice : number) => {
 //      const db = mongoose.connection.db;
      
