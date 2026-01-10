@@ -57,6 +57,14 @@ export const roleExists = (roleId : string) => {
     )
 }
 
+export const isRoleExists = (role : string) => {
+    return pool.query(
+        `
+        SELECT  * FROM roles WHERE name = $1;
+        `,[role]
+    )
+}
+
 export const assignRoleToUser = (
   userId: string,
   roleId: string

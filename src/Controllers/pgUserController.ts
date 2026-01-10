@@ -1,5 +1,5 @@
 import type{ Request , Response } from "express";
-import { findUser , createUSer , defaultRole , newRole, roleExists  , assignRoleToUser, userExists} from "../Services/pgUser.service.js";
+import { findUser , createUSer , defaultRole , newRole, roleExists  , assignRoleToUser, userExists, isRoleExists} from "../Services/pgUser.service.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
@@ -91,17 +91,42 @@ export const newRoleHandler = async(req : Request , res : Response) => {
             })
         }
 
+        // check role already exists or not 
+        // why this is not good 
+        // ⚠️ What “two requests can pass at the same time” means⚠️ What “two requests can pass at the same time” means
+        // ➡️ Both passed the check
+        // ➡️ Only DB can stop the duplicate
+        // ➡️ Your JS check is not atomic
+        // This is called a race condition.
+
+
+        // const checkRole = await isRoleExists(role);
+        // if(checkRole.rowCount !== 0){
+        //     return res.status(400).send({
+        //         success : false,
+        //         message : "Role Already Exists"
+        //     })
+        // }
+        
 
         const createdRole = await newRole(role)
-        
         return res.status(200).send({
             success : true,
             message : 'New Role is created successfully',
             role : createdRole.rows[0]
         })
         
-    } catch(err : unknown){
+    } catch(err : any){
         console.log("Error comes in creating new role -> " , err);
+
+            // UNIQUE constraint violation
+        if (err.code === '23505') {
+          return res.status(409).json({
+            status: false,
+            message: 'Role already exists'
+          });
+        }
+
         let errmessage;
         if(err instanceof Error){
             errmessage = err.message
@@ -120,6 +145,7 @@ export const newRoleHandler = async(req : Request , res : Response) => {
 export const assignRoleHandler = async(req : Request , res : Response) => {
     try{
 
+        const adminId = (req as AuthenticatedRequest).user.userId;
         const userId = req.params.id;
         const {assignRoleId} = req.body;
 
@@ -139,6 +165,15 @@ export const assignRoleHandler = async(req : Request , res : Response) => {
           });
         }
 
+        // 1️⃣ Prevent self-downgrade
+        if(userId === adminId){
+            return res.status(403).json({
+                success : false,
+                message : "You cannot change your own role" 
+            })
+        }
+
+        // 2️⃣ Protect last Admin if this route is not admin protected
 
         // Check role
         const roleCheck = await roleExists(assignRoleId);  

@@ -25,6 +25,7 @@ app.use('/api/v1/' , categoryRouter);
 app.use('/api/v1/' , userRoute);
 app.use('/api/v1/' , orderRoute);
 
+// Day-8 RBAC
 app.use('/api/v1' ,pgUserRoute);
 
 // Mongodb pagination api
