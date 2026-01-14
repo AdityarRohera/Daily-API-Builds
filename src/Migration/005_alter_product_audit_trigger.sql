@@ -27,7 +27,7 @@ BEGIN
 
     IF TG_OP = 'DELETE' THEN
         INSERT INTO audit_logs( action, table_name, record_id, old_data, new_data, performed_by)
-        VALUES (  'DELETE', 'products' , NEW.id , to_jsonb(old) , NULL , NULLIF(current_setting('app.user_id', true), '')::UUID);
+        VALUES (  'DELETE', 'products' , OLD.id , to_jsonb(old) , NULL , NULLIF(current_setting('app.user_id', true), '')::UUID);
         RETURN OLD;
     END IF;
 

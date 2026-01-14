@@ -133,7 +133,7 @@ export const softDeleteProduct = async(productId : string , adminId : string) =>
           ` , [productId]
         )
 
-        client.query('COMMIT');
+        await client.query('COMMIT');
       
         return deletedProduct;
 
@@ -257,4 +257,87 @@ export const getProductsMongo = async(minSellingPrice : number , maxSellingPrice
 
      ])
      .toArray();
+}
+
+
+
+// Bulk Insert product 
+
+export const bulkInsertProducts = async(products : any , adminId : string) => {
+
+    const client =  await pool.connect();
+
+    try{
+
+      await client.query('BEGIN');
+
+       // set admin id to postgres for getting performed_by in product_audit field
+        await client.query(
+          `SELECT set_config('app.user_id', $1, true)`,
+          [adminId]
+        );
+
+
+      // 2. insert into products
+      const names = [];
+      const quantities = [];
+      const buyingPrices = [];
+      const sellingPrices = [];
+      const descriptions = [];
+      const categoryIds = [];
+
+      for (const p of products) {
+        names.push(p.product_name);
+        quantities.push(p.product_quantity);
+        buyingPrices.push(p.buying_price);
+        sellingPrices.push(p.selling_price);
+        descriptions.push(p.product_desc || null);
+        categoryIds.push(p.category_id);
+      }
+
+      // console.log(names , quantities , buyingPrices , sellingPrices , descriptions , categoryIds)
+
+        
+      const insertedProducts = await client.query(
+                                  `
+                                  INSERT INTO products (
+                                    product_name,
+                                    product_quantity,
+                                    buying_price,
+                                    selling_price,
+                                    product_desc,
+                                    category_id
+                                    )
+                                    SELECT *
+                                    FROM UNNEST(
+                                      $1::text[],
+                                      $2::int[],
+                                      $3::numeric[],
+                                      $4::numeric[],
+                                      $5::text[],
+                                      $6::uuid[]
+                                    )
+                                    ON CONFLICT (product_name) DO NOTHING
+                                    RETURNING *;
+                                  ` , [ names, quantities, buyingPrices, sellingPrices, descriptions, categoryIds]
+                                );
+
+      
+       await client.query('COMMIT');
+
+       console.log("checking for inserted data -> " , insertedProducts.rows);
+
+      return {
+              inserted: insertedProducts.rowCount,
+              failed: products.length - (insertedProducts.rowCount ?? 0)
+       };
+
+    } catch(err : any){
+
+      await client.query('ROLLBACK');
+      throw new Error(err);
+
+    } finally{
+        client.release();
+    }
 }

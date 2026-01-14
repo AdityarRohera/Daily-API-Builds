@@ -1,5 +1,5 @@
 import type { Request , Response } from "express"
-import { getProducts , newProductQuery , getCategoryProductQuery , getSearchedProduct } from "../Services/product.service.js"
+import { getProducts , newProductQuery , getCategoryProductQuery , getSearchedProduct, bulkInsertProducts } from "../Services/product.service.js"
 
 import type { AuthenticatedRequest } from "../Middlewares/pgAuth.js";
 import { findProduct , softDeleteProduct } from "../Services/product.service.js";
@@ -164,5 +164,49 @@ export const softDeleteProductHandler = async(req : Request , res : Response) =>
             message : "Something wrong in creating new product",
             error : errmessage
         })
+    }
+}
+
+// Bulk Insert operations 
+export const bulkInsertProductHandler = async(req : Request , res : Response) => {
+    try{
+
+        const adminId = (req as AuthenticatedRequest).user.userId;
+        const products = req.body.products;
+        console.log("Getting products -> ************" , products , typeof products)
+
+        if (!Array.isArray(products) || products.length === 0){
+            return res.status(400).send({
+                success : false,
+                message : "Products must be a non-empty array"
+            })
+        }
+
+        for (const p of products) {
+            if (
+              !p.product_name ||
+              p.product_quantity == null ||
+              p.buying_price == null ||
+              p.selling_price == null ||
+              !p.category_id
+            ) {
+              return res.status(400).json({
+                success: false,
+                message: "Missing required product fields"
+              });
+            }
+        }
+
+        // now perform bulk operations
+        const result = await bulkInsertProducts(products ,adminId);
+
+        res.status(200).send({
+            success : true,
+            message : "You successfully create products in bulk",
+            result : result
+        })
+        
+    } catch(err){
+        console.log("Error comes in getting products -> " , err)
     }
 }
