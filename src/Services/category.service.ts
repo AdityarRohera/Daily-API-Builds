@@ -20,3 +20,13 @@ export const getCategoryById = (category_id : string) => {
         [category_id]
     )
 }
+
+export const validateCategoryId = (categoryIds: string[]) => {
+  return pool.query(
+    `
+    SELECT id FROM category
+    WHERE id = ANY($1::uuid[])
+    `,
+    [categoryIds]
+  );
+};

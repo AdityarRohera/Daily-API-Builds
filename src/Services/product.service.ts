@@ -327,9 +327,22 @@ export const bulkInsertProducts = async(products : any , adminId : string) => {
 
        console.log("checking for inserted data -> " , insertedProducts.rows);
 
+       const insertedProductsName = insertedProducts.rows.map((p : any) => (p.product_name));
+       console.log(insertedProductsName);
+       // [wheet , rice ...]
+
+       const failedData = products.filter((p : any) => {
+          if(!insertedProductsName.includes(p.product_name)){
+              return p;
+          }
+       })
+
+       console.log(failedData);
+
       return {
               inserted: insertedProducts.rowCount,
-              failed: products.length - (insertedProducts.rowCount ?? 0)
+              failed: products.length - (insertedProducts.rowCount ?? 0),
+              failed_to_create_products : failedData
        };
 
     } catch(err : any){

@@ -3,6 +3,7 @@ import { getProducts , newProductQuery , getCategoryProductQuery , getSearchedPr
 
 import type { AuthenticatedRequest } from "../Middlewares/pgAuth.js";
 import { findProduct , softDeleteProduct } from "../Services/product.service.js";
+import { validateCategoryId } from "../Services/category.service.js";
 
 export const newProductHandler = async(req : Request , res : Response) => {
     try{
@@ -182,6 +183,15 @@ export const bulkInsertProductHandler = async(req : Request , res : Response) =>
             })
         }
 
+        // Restrict more insert entries 
+        if(products.length > 10){
+            return res.status(400).send({
+                success : false,
+                message: "Maximum 10 products allowed per request"
+            })
+        }
+
+        // feild validation
         for (const p of products) {
             if (
               !p.product_name ||
@@ -197,6 +207,42 @@ export const bulkInsertProductHandler = async(req : Request , res : Response) =>
             }
         }
 
+        // validate catagory id's 
+        // const categories = products.map((p : any) => (p.category_id)); // this also has duplicates categories and result return without duplicates so error check conditions fails correct approach is to use set which removes duplicates from array.
+        const categoryIds = [...new Set(products.map(p => p.category_id))];
+        console.log(categoryIds)
+
+
+        // 2️⃣ Validate UUID format (BEFORE DB)
+        const UUID_REGEX =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            
+        const invalidUUIDs = categoryIds.filter(id => !UUID_REGEX.test(id));
+            
+        if (invalidUUIDs.length > 0) {
+          return res.status(400).send({
+            success: false,
+            message: "One or more category IDs are not valid UUIDs",
+            invalidUUIDs
+          });
+        }
+
+        const categoryResult = await validateCategoryId(categoryIds);
+
+        const validCategorySet = new Set(categoryResult.rows.map(r => r.id)); 
+
+        const invalidCategoryIds = categoryIds.filter(
+            id => !validCategorySet.has(id)
+        );
+
+        if(categoryResult.rowCount !== categoryIds.length){
+            return res.status(400).send({
+                success : false,
+                message : "One or more category IDs are invalid",
+                invalidCategoryIds
+            })
+        }
+
         // now perform bulk operations
         const result = await bulkInsertProducts(products ,adminId);
 
@@ -205,7 +251,7 @@ export const bulkInsertProductHandler = async(req : Request , res : Response) =>
             message : "You successfully create products in bulk",
             result : result
         })
-        
+
     } catch(err){
         console.log("Error comes in getting products -> " , err)
     }
